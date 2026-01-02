@@ -17,9 +17,7 @@ body{margin:0;font-family:system-ui;background:#f2f2f2}
 .code{background:#f4f4f4;padding:10px;border-radius:6px;font-size:12px;word-break:break-all}
 .btn{margin-top:15px;width:100%;padding:12px;border:0;border-radius:8px;font-size:16px;cursor:pointer}
 .primary{background:#1c9bd6;color:#fff}
-
-/* Modal */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:10}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center}
 .modal .box{background:#fff;border-radius:12px;padding:20px;max-width:320px;text-align:center}
 </style>
 </head>
@@ -35,67 +33,60 @@ body{margin:0;font-family:system-ui;background:#f2f2f2}
 
   <div class="content">
     <div class="card">
-      <div class="label">Valor do Pix a pagar:</div>
-      <div class="value" id="valor">—</div>
+      <div class="label">Valor do Pix:</div>
+      <div class="value" id="valor"></div>
 
       <div class="label">Código Pix:</div>
-
-      <!-- textarea invisível para cópia limpa -->
-      <textarea id="pixCode" style="position:absolute;left:-9999px"></textarea>
-      <div class="code" id="pixView">Carregando...</div>
+      <div class="code" id="codigo"></div>
 
       <button class="btn primary" onclick="copiar()">Copiar código</button>
-      <p style="font-size:12px;color:#777;margin-top:8px" id="validade"></p>
+      <p id="validade" style="font-size:12px;color:#777;margin-top:8px"></p>
     </div>
   </div>
 </div>
 
-<!-- MODAL -->
 <div class="modal" id="modal">
   <div class="box">
-    <h3>Você copiou o código!</h3>
-    <ol style="text-align:left;font-size:14px">
-      <li>Abra seu app bancário</li>
-      <li>Escolha pagar via Pix</li>
-      <li>Cole o código</li>
-    </ol>
-    <button class="btn primary" onclick="modal.style.display='none'">Entendi</button>
+    <h3>Código copiado</h3>
+    <p>Cole no seu app bancário</p>
+    <button class="btn primary" onclick="fechar()">Entendi</button>
   </div>
 </div>
 
 <script>
-/* API REAL */
-const API_URL = 'https://pix-site-api.onrender.com/api/pix';
+const API = 'https://pix-site-api.onrender.com/api/pix';
+let PIX_CODE = '';
 
-/* Carrega dados SEM cache */
-async function carregar(){
-  try{
-    const res = await fetch(API_URL, { cache: 'no-store' });
-    const d = await res.json();
+// Carrega dados da API
+fetch(API)
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('titulo').innerText = data.titulo;
+    document.getElementById('subtitulo').innerText = data.subtitulo;
+    document.getElementById('valor').innerText = data.valor;
+    document.getElementById('codigo').innerText = data.codigo;
+    document.getElementById('validade').innerText = data.validade;
 
-    document.getElementById('titulo').innerText = d.titulo || 'Falta pouco!';
-    document.getElementById('subtitulo').innerText = d.subtitulo || '';
-    document.getElementById('valor').innerText = d.valor || '—';
-    document.getElementById('pixView').innerText = d.codigo || '—';
-    document.getElementById('pixCode').value = d.codigo || '';
-    document.getElementById('validade').innerText = d.validade || '';
-  }catch(e){
-    document.getElementById('titulo').innerText = 'Erro ao carregar pagamento';
-    document.getElementById('subtitulo').innerText = 'Tente novamente em instantes';
-  }
+    // guarda o Pix apenas em memória (evita teclado)
+    PIX_CODE = data.codigo;
+  })
+  .catch(() => {
+    document.getElementById('titulo').innerText = 'Erro ao carregar Pix';
+    document.getElementById('subtitulo').innerText = 'Tente novamente';
+  });
+
+// Copiar sem foco / sem teclado
+function copiar() {
+  if (!PIX_CODE) return;
+
+  navigator.clipboard.writeText(PIX_CODE).then(() => {
+    document.getElementById('modal').style.display = 'grid';
+  });
 }
 
-/* Copiar Pix limpo */
-function copiar(){
-  const pix = document.getElementById('pixCode');
-  pix.select();
-  document.execCommand('copy');
-  document.getElementById('modal').style.display = 'grid';
+function fechar() {
+  document.getElementById('modal').style.display = 'none';
 }
-
-/* Atualiza automaticamente a cada 10s (se admin trocar, cliente vê) */
-carregar();
-setInterval(carregar, 10000);
 </script>
 
 </body>
